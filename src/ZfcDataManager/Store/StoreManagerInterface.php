@@ -14,6 +14,8 @@ interface StoreManagerInterface
      */
     public function getStore($storeName);
 
+    public function createStore($config);
+
     /**
      * @abstract
      * @param $stores

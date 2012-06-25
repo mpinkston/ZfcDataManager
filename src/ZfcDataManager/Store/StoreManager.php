@@ -46,18 +46,29 @@ class StoreManager implements StoreManagerInterface
         if (isset($this->loadedStores[$storeName])) {
             return $this->loadedStores[$storeName];
         }
-
-        if (isset($this->stores[$storeName])) {
-            $store = $this->createStoreFromArray($this->stores[$storeName]);
-            $this->loadedStores[$storeName] = $store;
-        } else {
-            throw new Exception\InvalidArgumentException(sprintf(
-                "No instance or configuration could be found for the specified store (%s)",
-                $storeName
-            ));
-        }
+        $store = $this->createStore($storeName);
+        $this->loadedStores[$storeName] = $store;
 
         return $store;
+    }
+
+    /**
+     * @param $config
+     * @return StoreInterface
+     * @throws Exception\InvalidArgumentException
+     */
+    public function createStore($config)
+    {
+        if (is_string($config) && isset($this->stores[$config])) {
+            return $this->createStoreFromArray($this->stores[$config]);
+        } else if (is_array($config)) {
+            return $this->createStoreFromArray($config);
+        }
+
+        throw new Exception\InvalidArgumentException(sprintf(
+            "Argument passed to %s must reference or be a valid store configuration",
+            __METHOD__
+        ));
     }
 
     /**

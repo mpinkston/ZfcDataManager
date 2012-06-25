@@ -93,22 +93,27 @@ abstract class AbstractModel extends Options implements ModelInterface
     }
 
     /**
+     * hydrate: Maps data. $data should be in the exact same
+     * format as returned by the proxy at this point.
+     *
      * @param array $data
      * @return mixed|Model|ModelInterface
      */
     public function hydrate(array $data)
     {
-        // Map data: $data should be in the exact same format as returned by the
-        // proxy at this point.
-        $dataMap = $this->getFieldManager()->getKeyMap();
-        foreach ($dataMap as &$value) {
-            if (isset($data[$value])) {
-                $value = $data[$value];
-            }
+        $fieldManager = $this->getFieldManager();
+
+        // $dataMap should be a name => value array where the name is always
+        // the field name as specified in the config, and the value is determined
+        // by the field type and the contents of $data.
+        $dataMap = array();
+
+        /** @var $field FieldInterface */
+        foreach ($fieldManager->getFields() as $name => $field) {
+            $dataMap[$name] = $field->getValue($data);
         }
 
         $hydrator = $this->getHydrator();
-
         $hydrator->hydrate($dataMap, $this->getEntity());
         return $this;
     }

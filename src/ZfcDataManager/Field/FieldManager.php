@@ -27,6 +27,15 @@ class FieldManager implements FieldManagerInterface
      */
     public function getField($fieldName)
     {
+        return $this->loadField($fieldName);
+    }
+
+    /**
+     * @param $fieldName
+     * @return mixed
+     */
+    public function loadField($fieldName)
+    {
         if (isset($this->loadedFields[$fieldName])) {
             return $this->loadedFields[$fieldName];
         }
@@ -55,6 +64,8 @@ class FieldManager implements FieldManagerInterface
         // somehow, switch statements now look ugly to me..
 
         $type = isset($config['type'])?$config['type']:'default';
+        unset($config['type']);
+
         switch ($type) {
             case 'int':
             case 'integer':
@@ -75,6 +86,7 @@ class FieldManager implements FieldManagerInterface
                 break;
 
         }
+        $instance->setDataManager($this->dataManager);
         $instance->setFromArray($config);
         return $instance;
     }
@@ -94,11 +106,10 @@ class FieldManager implements FieldManagerInterface
      */
     public function getFields()
     {
-        $fields = array();
         foreach (array_keys($this->fields) as $fieldName) {
-            $fields[] = $this->getField($fieldName);
+            $this->loadField($fieldName);
         }
-        return $fields;
+        return $this->loadedFields;
     }
 
     // @TODO: I should validate/verify key names somewhere..

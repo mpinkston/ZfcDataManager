@@ -5,6 +5,7 @@ namespace ZfcDataManager;
 use ZfcDataManager\Exception;
 use ZfcDataManager\Model\ModelManager;
 use ZfcDataManager\Model\ModelManagerInterface;
+use ZfcDataManager\Store\AbstractStore;
 use ZfcDataManager\Store\StoreManager;
 use ZfcDataManager\Store\StoreManagerInterface;
 use ZfcDataManager\Proxy\ProxyManager;
@@ -71,11 +72,20 @@ class DataManager extends Options implements ServiceLocatorAwareInterface
 
     /**
      * @param $storeName
-     * @return mixed
+     * @return AbstractStore
      */
     public function getStore($storeName)
     {
         return $this->getStoreManager()->getStore($storeName);
+    }
+
+    /**
+     * @param $config
+     * @return AbstractStore
+     */
+    public function createStore($config)
+    {
+        return $this->getStoreManager()->createStore($config);
     }
 
     /**

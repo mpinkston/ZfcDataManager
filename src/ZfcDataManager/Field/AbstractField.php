@@ -2,6 +2,7 @@
 
 namespace ZfcDataManager\Field;
 
+use ZfcDataManager\DataManager;
 use Zend\Validator\ValidatorInterface;
 use Zend\Stdlib\Options;
 
@@ -11,7 +12,22 @@ abstract class AbstractField extends Options implements FieldInterface
 
     public $mapping;
 
-    public $validator;
+    /**
+     * @var DataManager
+     */
+    public $dataManager;
+
+    /**
+     * @param array $data
+     * @return mixed|null
+     */
+    public function getValue(array $data)
+    {
+        if (isset($data[$this->getMapping()])) {
+            return $data[$this->getMapping()];
+        }
+        return null;
+    }
 
     /**
      * @param $name
@@ -50,20 +66,12 @@ abstract class AbstractField extends Options implements FieldInterface
     }
 
     /**
-     * @param $validator
-     * @return void|FieldInterface
+     * @param DataManager $dataManager
+     * @return AbstractField|FieldInterface
      */
-    public function setValidator($validator)
+    public function setDataManager(DataManager $dataManager)
     {
-        $this->validator = $validator;
+        $this->dataManager = $dataManager;
         return $this;
-    }
-
-    /**
-     * @return ValidatorInterface
-     */
-    public function getValidator()
-    {
-        return $this->validator;
     }
 }

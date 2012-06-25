@@ -3,31 +3,27 @@
 namespace ZfcDataManager\Field;
 
 use Zend\Validator\ValidatorInterface;
+use ZfcDataManager\DataManager;
 
 interface FieldInterface
 {
     /**
      * @abstract
-     * @return string
+     * @param array $data
+     * @return mixed
      */
+    public function getValue(array $data);
+
+    public function setName($name);
     public function getName();
 
-    /**
-     * @abstract
-     * @return string
-     */
+    public function setMapping($mapping);
     public function getMapping();
 
     /**
      * @abstract
-     * @param $validator
-     * @return FieldInterface
+     * @param DataManager $dataManager
+     * @return FieldInterface|AbstractField
      */
-    public function setValidator($validator);
-
-    /**
-     * @abstract
-     * @return ValidatorInterface
-     */
-    public function getValidator();
+    public function setDataManager(DataManager $dataManager);
 }
