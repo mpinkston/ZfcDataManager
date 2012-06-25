@@ -4,6 +4,7 @@ namespace ZfcDataManager\Store;
 
 use \ArrayObject;
 use \Traversable;
+use \IteratorAggregate;
 use ZfcDataManager\DataManager;
 use ZfcDataManager\Model\ModelManager;
 use ZfcDataManager\Model\ModelInterface;
@@ -19,7 +20,7 @@ use Zend\EventManager\EventManager;
 use Zend\EventManager\EventManagerInterface;
 
 abstract class AbstractStore extends Options
-    implements StoreInterface
+    implements StoreInterface, IteratorAggregate
 {
     /**
      * @var EventManager
@@ -37,7 +38,7 @@ abstract class AbstractStore extends Options
     protected $data;
 
     /**
-     * @var mixed
+     * @var ProxyInterface
      */
     protected $proxy;
 
@@ -106,15 +107,6 @@ abstract class AbstractStore extends Options
         }
 
         $proxy = $this->getProxyForRead();
-
-        if ($proxy instanceof SortableProxyInterface) {
-            $proxy->setSortBy($this->getSorters());
-        }
-
-        if ($proxy instanceof FilterableProxyInterface) {
-            $proxy->setFilterBy($this->getFilters());
-        }
-
         $data = $proxy->fetch(
             $this->getStartIndex(),
             $this->getPageSize()
@@ -186,6 +178,18 @@ abstract class AbstractStore extends Options
             $this->load();
         }
         return $this->data;
+    }
+
+    /**
+     * (PHP 5 &gt;= 5.0.0)<br/>
+     * Retrieve an external iterator
+     * @link http://php.net/manual/en/iteratoraggregate.getiterator.php
+     * @return Traversable An instance of an object implementing <b>Iterator</b> or
+     * <b>Traversable</b>
+     */
+    public function getIterator()
+    {
+        return $this->getData()->getIterator();
     }
 
     /**
@@ -282,9 +286,9 @@ abstract class AbstractStore extends Options
         if (!$this->proxy instanceof ProxyInterface) {
             $proxyManager = $this->dataManager->getProxyManager();
             $proxy = $proxyManager->getProxy($this->proxy);
-            $proxy->setMapping($this->getMapping());
             $this->proxy = $proxy;
         }
+        $this->proxy->setMapping($this->getMapping());
         return $this->proxy;
     }
 
@@ -294,12 +298,24 @@ abstract class AbstractStore extends Options
      */
     public function getProxyForRead()
     {
+        /** @var $proxy ReadableProxyInterface|FilterableProxyInterface|SortableProxyInterface */
         $proxy = $this->getProxy();
         if (!$proxy instanceof ReadableProxyInterface) {
             throw new Exception\UnsupportedOperationException(sprintf(
                 "This store has not been configured with a readable proxy"
             ));
         }
+
+        // Proxies are re-used since some may take time to load
+        // (for example: when connecting to sources other than databases)
+        if ($proxy instanceof SortableProxyInterface) {
+            $proxy->setSortBy($this->getSorters());
+        }
+
+        if ($proxy instanceof FilterableProxyInterface) {
+            $proxy->setFilterBy($this->getFilters());
+        }
+
         return $proxy;
     }
 

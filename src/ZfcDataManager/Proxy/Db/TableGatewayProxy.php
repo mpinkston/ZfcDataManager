@@ -64,13 +64,10 @@ class TableGatewayProxy extends AbstractProxy
      */
     public function getTableGateway()
     {
-        if (!$this->gateway) {
-            $this->gateway = new TableGateway(
-                $this->mapping,
-                $this->getAdapter()
-            );
-        }
-        return $this->gateway;
+        return new TableGateway(
+            $this->mapping,
+            $this->getAdapter()
+        );
     }
 
     /**
@@ -108,6 +105,9 @@ class TableGatewayProxy extends AbstractProxy
         $select = $sql->select();
 
         // @TODO: check for filters/sorters etc.
+        if (is_array($this->filters)) {
+            $select->where($this->filters);
+        }
 
         $select->offset($startIndex);
         if (is_int($pageSize)) {
