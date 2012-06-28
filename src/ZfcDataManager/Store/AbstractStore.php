@@ -14,12 +14,12 @@ use ZfcDataManager\Proxy\SortableProxyInterface;
 use ZfcDataManager\Proxy\FilterableProxyInterface;
 use ZfcDataManager\Proxy\WritableProxyInterface;
 use ZfcDataManager\Proxy\Exception\RuntimeException;
-use Zend\Stdlib\Options;
+use Zend\Stdlib\AbstractOptions;
 use Zend\Stdlib\ArrayUtils;
 use Zend\EventManager\EventManager;
 use Zend\EventManager\EventManagerInterface;
 
-abstract class AbstractStore extends Options
+abstract class AbstractStore extends AbstractOptions
     implements StoreInterface, IteratorAggregate
 {
     /**
@@ -88,11 +88,13 @@ abstract class AbstractStore extends Options
      */
     public function add($record)
     {
-        $model = $this->createModel($record);
+        if (!$record instanceof ModelInterface) {
+            $record = $this->createModel($record);
+        }
         if (!$this->data) {
             $this->data = new ArrayObject();
         }
-        $this->data->append($model);
+        $this->data->append($record);
     }
 
     /**
@@ -141,22 +143,6 @@ abstract class AbstractStore extends Options
             "Argument to %s must be an array or instance of Traversable",
             __METHOD__
         ));
-    }
-
-    /**
-     * @param null $sorters
-     */
-    public function sort($sorters = null)
-    {
-
-    }
-
-    /**
-     * @param null $filters
-     */
-    public function filter($filters = null)
-    {
-
     }
 
     /**
@@ -211,17 +197,40 @@ abstract class AbstractStore extends Options
     }
 
     /**
-     * @param $record
-     * @return ModelInterface|void
+     * @param $id
+     * @return void|ModelInterface
      */
-    public function createModel($record)
+    public function getById($id)
     {
-        if (!$record instanceof ModelInterface) {
-            $modelManager = $this->dataManager->getModelManager();
-            $record = $modelManager->createModel($record, $this->model);
-            $record->setParentStore($this);
+        $record = $this->getProxyForRead()->read($id);
+        return $this->createModel($record);
+    }
+
+    /**
+     * @param $fieldName
+     * @param $value
+     */
+    public function findRecord($fieldName, $value)
+    {
+
+    }
+
+    /**
+     * @param array|null $record
+     * @return array|mixed|null|\ZfcDataManager\Model\AbstractModel
+     */
+    public function createModel(array $record = null)
+    {
+        if ($record instanceof Traversable) {
+            $record = ArrayUtils::iteratorToArray($record);
         }
-        return $record;
+        if (is_array($record)) {
+            $model = $this->dataManager->createModel($this->getModel(), $record);
+        } else {
+            $model = $this->dataManager->createModel($this->getModel());
+        }
+        $model->setParentStore($this);
+        return $model;
     }
 
     /**
@@ -285,9 +294,9 @@ abstract class AbstractStore extends Options
     {
         if (!$this->proxy instanceof ProxyInterface) {
             $proxyManager = $this->dataManager->getProxyManager();
-            $proxy = $proxyManager->getProxy($this->proxy);
-            $this->proxy = $proxy;
+            $this->proxy = $proxyManager->getProxy($this->proxy);
         }
+        $this->proxy->setModel($this->getModel());
         $this->proxy->setMapping($this->getMapping());
         return $this->proxy;
     }

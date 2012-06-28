@@ -2,17 +2,10 @@
 
 namespace ZfcDataManager\Proxy;
 
-use ZfcDataManager\DataManager;
+use ZfcDataManager\DataManagerAwareInterface;
 
-interface ProxyManagerInterface
+interface ProxyManagerInterface extends DataManagerAwareInterface
 {
-    /**
-     * @abstract
-     * @param $proxyName
-     * @return AbstractProxy
-     */
-    public function getProxy($proxyName);
-
     /**
      * @abstract
      * @param $proxies
@@ -22,8 +15,8 @@ interface ProxyManagerInterface
 
     /**
      * @abstract
-     * @param DataManager $dataManager
-     * @return ProxyManagerInterface
+     * @param $proxyName
+     * @return ProxyInterface
      */
-    public function setDataManager(DataManager $dataManager);
+    public function getProxy($proxyName);
 }

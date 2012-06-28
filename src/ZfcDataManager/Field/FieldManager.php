@@ -4,6 +4,8 @@ namespace ZfcDataManager\Field;
 
 use ZfcDataManager\DataManager;
 
+// @TODO: I should validate/verify key names somewhere..
+
 class FieldManager implements FieldManagerInterface
 {
     /**
@@ -45,7 +47,11 @@ class FieldManager implements FieldManagerInterface
             $config['name'] = $fieldName;
             $instance = $this->createFieldFromArray($config);
         } else {
-            $instance = new Type\StringField();
+            throw new Exception\InvalidArgumentException(sprintf(
+                "No configuration could be found for specified field '%s' in %s",
+                $fieldName,
+                __METHOD__
+            ));
         }
 
         if ($instance instanceof FieldInterface) {
@@ -60,32 +66,17 @@ class FieldManager implements FieldManagerInterface
      */
     public function createFieldFromArray($config)
     {
-        // @TODO: find a better way to determine and instantiate appropriate field type
-        // somehow, switch statements now look ugly to me..
-
         $type = isset($config['type'])?$config['type']:'default';
         unset($config['type']);
 
-        switch ($type) {
-            case 'int':
-            case 'integer':
-                $instance = new Type\IntegerField();
-                break;
-
-            case 'model':
-                $instance = new Type\ModelField();
-                break;
-
-            case 'store':
-                $instance = new Type\StoreField();
-                break;
-
-            case 'string':
-            default:
-                $instance = new Type\StringField();
-                break;
-
+        if ($type == 'store') {
+            $instance = new StoreField();
+        } else if ($type == 'model') {
+            $instance = new ModelField();
+        } else {
+            $instance = new Field();
         }
+
         $instance->setDataManager($this->dataManager);
         $instance->setFromArray($config);
         return $instance;
@@ -97,7 +88,21 @@ class FieldManager implements FieldManagerInterface
      */
     public function setFields($fields)
     {
-        $this->fields = $fields;
+        if (!is_array($fields) && !($fields instanceof \Traversable)) {
+            throw new Exception\InvalidArgumentException(sprintf(
+                "Argument to %s must be an array or implement Traversable",
+                __METHOD__
+            ));
+        }
+
+        $this->fields = array();
+        foreach ($fields as $fieldName => $fieldConfig) {
+            if (is_string($fieldName)) {
+                $this->fields[$fieldName] = $fieldConfig;
+            } else if (is_string($fieldConfig)) {
+                $this->fields[$fieldConfig] = array();
+            }
+        }
         return $this;
     }
 
@@ -112,10 +117,27 @@ class FieldManager implements FieldManagerInterface
         return $this->loadedFields;
     }
 
-    // @TODO: I should validate/verify key names somewhere..
+    /**
+     * mapToFieldName: returns a field name from the provided field
+     * mapping or field name.
+     *
+     * @param $key
+     * @return null
+     */
+    public function mapToFieldName($key)
+    {
+        $keyMap = $this->getKeyMap();
+        if ($eKey = array_search($key, $keyMap)) {
+            return $eKey;
+        } else if (isset($keyMap[$key])) {
+            return $key;
+        }
+        return null;
+    }
 
     /**
-     * getKeyMap: returns a key => value array of field names
+     * getKeyMap: returns a key => value array of field names and
+     * the associated mapping
      *
      * @return array
      */
@@ -127,6 +149,23 @@ class FieldManager implements FieldManagerInterface
             $keyMap[$field->getName()] = $field->getMapping();
         }
         return $keyMap;
+    }
+
+    /**
+     * getDataMap: returns a key => value array of field names and
+     * associated values (which should theoretically be in-sync with persistence
+     * but not necessarily with the model's entity)
+     *
+     * @return array
+     */
+    public function getDataMap()
+    {
+        $dataMap = array();
+        /** @var $field FieldInterface */
+        foreach ($this->getFields() as $field) {
+            $dataMap[$field->getName()] = $field->getValue();
+        }
+        return $dataMap;
     }
 
     /**

@@ -4,13 +4,29 @@ namespace ZfcDataManager\Field;
 
 use ZfcDataManager\DataManager;
 use Zend\Validator\ValidatorInterface;
-use Zend\Stdlib\Options;
+use Zend\Stdlib\AbstractOptions;
 
-abstract class AbstractField extends Options implements FieldInterface
+abstract class AbstractField extends AbstractOptions implements FieldInterface
 {
-    public $name;
+    /**
+     * @var string
+     */
+    protected $name;
 
-    public $mapping;
+    /**
+     * @var mixed
+     */
+    protected $value;
+
+    /**
+     * @var string
+     */
+    protected $mapping;
+
+    /**
+     * @var FieldManager
+     */
+    protected $fieldManager;
 
     /**
      * @var DataManager
@@ -18,15 +34,34 @@ abstract class AbstractField extends Options implements FieldInterface
     public $dataManager;
 
     /**
-     * @param array $data
-     * @return mixed|null
+     * @param array $record
+     * @return AbstractField
      */
-    public function getValue(array $data)
+    public function parseRecord(array $record)
     {
-        if (isset($data[$this->getMapping()])) {
-            return $data[$this->getMapping()];
+        $mapping = $this->getMapping();
+        if (isset($record[$mapping])) {
+            $this->setValue($record[$mapping]);
         }
-        return null;
+        return $this;
+    }
+
+    /**
+     * @param $value
+     * @return AbstractField
+     */
+    public function setValue($value)
+    {
+        $this->value = $value;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getValue()
+    {
+        return $this->value;
     }
 
     /**
@@ -63,6 +98,16 @@ abstract class AbstractField extends Options implements FieldInterface
     public function getMapping()
     {
         return $this->mapping?$this->mapping:$this->name;
+    }
+
+    /**
+     * @param FieldManager $fieldManager
+     * @return mixed
+     */
+    public function setFieldManager(FieldManager $fieldManager)
+    {
+        $this->fieldManager = $fieldManager;
+        return $this;
     }
 
     /**

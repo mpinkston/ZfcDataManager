@@ -2,20 +2,10 @@
 
 namespace ZfcDataManager\Store;
 
-use ZfcDataManager\DataManager;
-use ZfcDataManager\Store\StoreManager;
+use ZfcDataManager\DataManagerAwareInterface;
 
-interface StoreManagerInterface
+interface StoreManagerInterface extends DataManagerAwareInterface
 {
-    /**
-     * @abstract
-     * @param $storeName
-     * @return mixed
-     */
-    public function getStore($storeName);
-
-    public function createStore($config);
-
     /**
      * @abstract
      * @param $stores
@@ -25,8 +15,15 @@ interface StoreManagerInterface
 
     /**
      * @abstract
-     * @param DataManager $dataManager
-     * @return StoreManagerInterface
+     * @param $config
+     * @return StoreInterface
      */
-    public function setDataManager(DataManager $dataManager);
+    public function createStore($config);
+
+    /**
+     * @abstract
+     * @param $storeName
+     * @return StoreInterface
+     */
+    public function getStore($storeName);
 }

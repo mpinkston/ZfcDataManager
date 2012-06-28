@@ -23,7 +23,7 @@ class ProxyManager implements ProxyManagerInterface
 
     /**
      * @param $proxyName
-     * @return AbstractProxy
+     * @return mixed|ProxyInterface
      */
     public function getProxy($proxyName)
     {
@@ -68,25 +68,30 @@ class ProxyManager implements ProxyManagerInterface
                 __METHOD__);
         }
 
+        $type = $config['type'];
+        unset($config['type']);
+
         /** @var $instance ProxyInterface */
         $instance = null;
-        if (is_string($config['type'])) {
-            $serviceLocator = $this->dataManager->getServiceLocator();
-            $instance = $serviceLocator->get($config['type']);
+        if (is_string($type)) {
+            if (class_exists($type)) {
+                $instance = new $type();
+            } else {
+                $serviceManager = $this->dataManager->getServiceManager();
+                $instance = $serviceManager->get($type);
+            }
         }
 
         if ($instance instanceof ProxyInterface) {
             $instance->setDataManager($this->dataManager);
-            if (method_exists($instance, 'setFromArray')) {
-                unset($config['type']);
-                $instance->setFromArray($config);
-            }
+            $instance->setFromArray($config);
             return $instance;
         }
 
         throw new Exception\RuntimeException(
             "Could not create an instance of ProxyInterface by specified type (%s)",
-            $config['type']);
+            $type
+        );
     }
 
     /**
@@ -101,7 +106,7 @@ class ProxyManager implements ProxyManagerInterface
 
     /**
      * @param DataManager $dataManager
-     * @return ProxyManagerInterface
+     * @return mixed
      */
     public function setDataManager(DataManager $dataManager)
     {

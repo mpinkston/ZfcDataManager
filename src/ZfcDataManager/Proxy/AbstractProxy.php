@@ -3,14 +3,15 @@
 namespace ZfcDataManager\Proxy;
 
 use ZfcDataManager\DataManager;
-use Zend\Stdlib\Options;
+use ZfcDataManager\Model\ModelInterface;
+use Zend\Stdlib\AbstractOptions;
 
-abstract class AbstractProxy extends Options implements ProxyInterface
+abstract class AbstractProxy extends AbstractOptions implements ProxyInterface
 {
     /**
-     * @var DataManager
+     * @var ModelInterface
      */
-    public $dataManager;
+    public $model;
 
     /**
      * @var string
@@ -18,12 +19,17 @@ abstract class AbstractProxy extends Options implements ProxyInterface
     public $mapping;
 
     /**
-     * @param DataManager $dataManager
-     * @return ProxyInterface
+     * @var DataManager
      */
-    public function setDataManager(DataManager $dataManager)
+    public $dataManager;
+
+    /**
+     * @param $model
+     * @return mixed|AbstractProxy
+     */
+    public function setModel($model)
     {
-        $this->dataManager = $dataManager;
+        $this->model = $model;
         return $this;
     }
 
@@ -34,6 +40,16 @@ abstract class AbstractProxy extends Options implements ProxyInterface
     public function setMapping($mapping)
     {
         $this->mapping = $mapping;
+        return $this;
+    }
+
+    /**
+     * @param DataManager $dataManager
+     * @return mixed|AbstractProxy
+     */
+    public function setDataManager(DataManager $dataManager)
+    {
+        $this->dataManager = $dataManager;
         return $this;
     }
 }

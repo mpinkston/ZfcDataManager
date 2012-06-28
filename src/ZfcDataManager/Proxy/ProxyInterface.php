@@ -2,16 +2,24 @@
 
 namespace ZfcDataManager\Proxy;
 
-use ZfcDataManager\DataManager;
+use ZfcDataManager\Model\ModelInterface;
+use ZfcDataManager\DataManagerAwareInterface;
 
-interface ProxyInterface
+interface ProxyInterface extends DataManagerAwareInterface
 {
     /**
      * @abstract
-     * @param DataManager $dataManager
-     * @return ProxyInterface
+     * @param $options
+     * @return mixed
      */
-    public function setDataManager(DataManager $dataManager);
+    public function setFromArray($options);
+
+    /**
+     * @abstract
+     * @param $model
+     * @return mixed
+     */
+    public function setModel($model);
 
     /**
      * @abstract

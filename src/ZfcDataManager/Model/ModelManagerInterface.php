@@ -2,21 +2,10 @@
 
 namespace ZfcDataManager\Model;
 
-use ZfcDataManager\DataManager;
+use ZfcDataManager\DataManagerAwareInterface;
 
-/**
- *
- */
-interface ModelManagerInterface
+interface ModelManagerInterface extends DataManagerAwareInterface
 {
-    /**
-     * @abstract
-     * @param array $data
-     * @param $modelName
-     * @return mixed
-     */
-    public function createModel(array $data, $modelName);
-
     /**
      * @abstract
      * @param $models
@@ -26,8 +15,9 @@ interface ModelManagerInterface
 
     /**
      * @abstract
-     * @param DataManager $dataManager
-     * @return ModelManagerInterface
+     * @param $modelName
+     * @param array|null $data
+     * @return ModelInterface
      */
-    public function setDataManager(DataManager $dataManager);
+    public function createModel($modelName, array $data = null);
 }

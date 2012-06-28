@@ -4,8 +4,6 @@ namespace ZfcDataManager\Store;
 
 use \Traversable;
 use ZfcDataManager\DataManager;
-use ZfcDataManager\Store\Store;
-use Zend\ServiceManager\ServiceLocatorInterface;
 
 /**
  *
@@ -110,7 +108,7 @@ class StoreManager implements StoreManagerInterface
 
     /**
      * @param DataManager $dataManager
-     * @return StoreManagerInterface
+     * @return mixed|StoreManager
      */
     public function setDataManager(DataManager $dataManager)
     {

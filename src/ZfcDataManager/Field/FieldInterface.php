@@ -7,18 +7,23 @@ use ZfcDataManager\DataManager;
 
 interface FieldInterface
 {
-    /**
-     * @abstract
-     * @param array $data
-     * @return mixed
-     */
-    public function getValue(array $data);
-
     public function setName($name);
     public function getName();
 
+    public function setValue($value);
+    public function getValue();
+
     public function setMapping($mapping);
     public function getMapping();
+
+    public function parseRecord(array $record);
+
+    /**
+     * @abstract
+     * @param FieldManager $fieldManager
+     * @return mixed
+     */
+    public function setFieldManager(FieldManager $fieldManager);
 
     /**
      * @abstract

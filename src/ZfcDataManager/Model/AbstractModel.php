@@ -7,13 +7,14 @@ use ZfcDataManager\DataManager;
 use ZfcDataManager\Field\FieldInterface;
 use ZfcDataManager\Field\FieldManager;
 use ZfcDataManager\Field\FieldManagerInterface;
+use ZfcDataManager\Store\AbstractStore;
 use ZfcDataManager\Store\StoreInterface;
-use Zend\Stdlib\Options;
+use Zend\Stdlib\AbstractOptions;
 use Zend\Stdlib\Hydrator\HydratorInterface;
 use Zend\EventManager\EventManager;
 use Zend\EventManager\EventManagerInterface;
 
-abstract class AbstractModel extends Options implements ModelInterface
+abstract class AbstractModel extends AbstractOptions implements ModelInterface
 {
     /**
      * @var
@@ -31,6 +32,20 @@ abstract class AbstractModel extends Options implements ModelInterface
     protected $hydrator = 'Zend\Stdlib\Hydrator\ObjectProperty';
 
     /**
+     * whether or not this model has been hydrated.
+     * @var bool
+     */
+    protected $hydrated = false;
+
+    /**
+     * If true, automatically (lazily) hydrate this model if the
+     * id property exists, has been set, and if there's a parent store.
+     *
+     * @var bool
+     */
+    protected $auto_hydrate = true;
+
+    /**
      * @var DataManager
      */
     protected $dataManager;
@@ -41,9 +56,32 @@ abstract class AbstractModel extends Options implements ModelInterface
     protected $fieldManager = 'FieldManager';
 
     /**
-     * @var StoreInterface
+     * @var string
+     */
+    protected $idProperty = 'id';
+
+    /**
+     * @var \ZfcDataManager\Store\AbstractStore
      */
     protected $parentStore;
+
+    /**
+     * This allows lazy-loading models
+     */
+    protected function autoHydrate()
+    {
+        if (!$this->hydrated && $this->auto_hydrate === true) {
+            /** @var $idField FieldInterface */
+            $idField = $this->getField($this->idProperty);
+            if ($idField && $id = $idField->getValue()) {
+                $this->load($id);
+            } else {
+                // @TODO: this is a temporary hack to initialize the fields if no data can be loaded
+                $dataMap = $this->fieldManager->getDataMap();
+                $this->hydrate($dataMap);
+            }
+        }
+    }
 
     /**
      * @param $name
@@ -53,6 +91,7 @@ abstract class AbstractModel extends Options implements ModelInterface
      */
     public function __call($name, $arguments)
     {
+        $this->autoHydrate();
         $entity = $this->getEntity();
         if (method_exists($entity, $name)) {
             return call_user_func_array(array($entity, $name), $arguments);
@@ -71,11 +110,13 @@ abstract class AbstractModel extends Options implements ModelInterface
      */
     public function __get($name)
     {
+        $this->autoHydrate();
         $entity = $this->getEntity();
         if (property_exists($entity, $name)) {
             return $entity->{$name};
+        } else {
+            return parent::__get($name);
         }
-        return parent::__get($name);
     }
 
     /**
@@ -93,6 +134,18 @@ abstract class AbstractModel extends Options implements ModelInterface
     }
 
     /**
+     * @param $id
+     * @return AbstractModel
+     */
+    public function load($id)
+    {
+        $proxy = $this->parentStore->getProxyForRead();
+        $record = $proxy->read($id);
+        $this->hydrate($record);
+        return $this;
+    }
+
+    /**
      * hydrate: Maps data. $data should be in the exact same
      * format as returned by the proxy at this point.
      *
@@ -103,18 +156,17 @@ abstract class AbstractModel extends Options implements ModelInterface
     {
         $fieldManager = $this->getFieldManager();
 
-        // $dataMap should be a name => value array where the name is always
-        // the field name as specified in the config, and the value is determined
-        // by the field type and the contents of $data.
-        $dataMap = array();
-
         /** @var $field FieldInterface */
-        foreach ($fieldManager->getFields() as $name => $field) {
-            $dataMap[$name] = $field->getValue($data);
+        foreach ($fieldManager->getFields() as $field) {
+            $field->parseRecord($data);
         }
 
         $hydrator = $this->getHydrator();
-        $hydrator->hydrate($dataMap, $this->getEntity());
+        $hydrator->hydrate(
+            $fieldManager->getDataMap(),
+            $this->getEntity()
+        );
+        $this->hydrated = true;
         return $this;
     }
 
@@ -135,11 +187,19 @@ abstract class AbstractModel extends Options implements ModelInterface
     {
         if (!$this->hydrator instanceof HydratorInterface) {
             if (is_string($this->hydrator)) {
-                $serviceLocator = $this->dataManager->getServiceLocator();
-                $this->hydrator = $serviceLocator->get($this->hydrator);
+                $serviceManager = $this->dataManager->getServiceManager();
+                $this->hydrator = $serviceManager->get($this->hydrator);
             }
         }
         return $this->hydrator;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isHydrated()
+    {
+        return $this->hydrated;
     }
 
     /**
@@ -161,8 +221,8 @@ abstract class AbstractModel extends Options implements ModelInterface
             if (class_exists($this->entity)) {
                 $this->entity = new $this->entity();
             } else {
-                $locator = $this->dataManager->getServiceLocator();
-                $this->entity = $locator->get($this->entity);
+                $serviceManager = $this->dataManager->getServiceManager();
+                $this->entity = $serviceManager->get($this->entity);
             }
         }
         if (!is_object($this->entity)) {
@@ -172,15 +232,15 @@ abstract class AbstractModel extends Options implements ModelInterface
     }
 
     /**
-     * @return string|FieldManager
+     * @return FieldManagerInterface
      * @throws Exception\InvalidArgumentException
      */
     public function getFieldManager()
     {
         if (!$this->fieldManager instanceof FieldManagerInterface) {
             if (is_string($this->fieldManager)) {
-                $serviceLocator = $this->dataManager->getServiceLocator();
-                $instance = $serviceLocator->get($this->fieldManager);
+                $serviceManager = $this->dataManager->getServiceManager();
+                $instance = $serviceManager->get($this->fieldManager);
                 if (!$instance instanceof FieldManagerInterface) {
                     throw new Exception\InvalidArgumentException(sprintf(
                         'ServiceLocator failed to return an instance of FieldManagerInterface in %s',
@@ -194,6 +254,14 @@ abstract class AbstractModel extends Options implements ModelInterface
             $this->fieldManager = $instance;
         }
         return $this->fieldManager;
+    }
+
+    /**
+     * @return \ZfcDataManager\Field\FieldInterface
+     */
+    public function getIdField()
+    {
+        return $this->getField($this->idProperty);
     }
 
     /**
@@ -234,6 +302,24 @@ abstract class AbstractModel extends Options implements ModelInterface
     }
 
     /**
+     * @param $idProperty
+     * @return AbstractModel
+     */
+    public function setIdProperty($idProperty)
+    {
+        $this->idProperty = $idProperty;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getIdProperty()
+    {
+        return $this->idProperty;
+    }
+
+    /**
      * Inject an EventManager instance
      *
      * @param  EventManagerInterface $eventManager
@@ -262,5 +348,15 @@ abstract class AbstractModel extends Options implements ModelInterface
             $this->setEventManager(new EventManager());
         }
         return $this->events;
+    }
+
+    /**
+     * @param $auto_hydrate
+     * @return AbstractModel
+     */
+    public function setAutoHydrate($auto_hydrate)
+    {
+        $this->auto_hydrate = $auto_hydrate;
+        return $this;
     }
 }

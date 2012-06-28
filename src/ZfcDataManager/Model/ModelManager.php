@@ -2,16 +2,16 @@
 
 namespace ZfcDataManager\Model;
 
+use \Traversable;
 use ZfcDataManager\DataManager;
 use ZfcDataManager\Model\Exception;
-use Zend\ServiceManager\ServiceLocatorInterface;
 
 class ModelManager implements ModelManagerInterface
 {
     /**
      * @var array
      */
-    protected $models;
+    protected $models = array();
 
     /**
      * @var DataManager
@@ -19,37 +19,51 @@ class ModelManager implements ModelManagerInterface
     protected $dataManager;
 
     /**
-     * @param array $data
      * @param $modelName
      * @return mixed|Model
-     * @throws Exception\RuntimeException
      */
-    public function createModel(array $data, $modelName)
+    public function getModel($modelName)
     {
-        if (isset($this->models[$modelName])) {
-            $model = $this->createModelFromArray($this->models[$modelName]);
-        } else {
-            // @TODO: evaluate if this should be here..
-            $model = new Model();
-        }
+        return $this->createModel($modelName);
+    }
 
-        if (!$model instanceof ModelInterface) {
-            throw new Exception\RuntimeException(sprintf(
-                "Failed to create model instance for %s in %s",
-                $modelName,
+    /**
+     * @param $config
+     * @param array|null $data
+     * @return mixed|ModelInterface
+     * @throws Exception\InvalidArgumentException
+     */
+    public function createModel($config, array $data = null)
+    {
+        if (is_string($config) && isset($this->models[$config])) {
+            $model = $this->createModelFromArray($this->models[$config]);
+        } else if (is_array($config)) {
+            $model = $this->createModelFromArray($config);
+        } else {
+            throw new Exception\InvalidArgumentException(sprintf(
+                "Argument passed to %s must reference or be a valid model configuration",
                 __METHOD__
             ));
         }
-        $model->hydrate($data);
+
+        if ($data) {
+            $model->hydrate($data);
+        }
         return $model;
     }
 
     /**
      * @param $config
-     * @return Model
+     * @throws Exception\InvalidArgumentException
+     * @return ModelInterface
      */
     public function createModelFromArray($config)
     {
+        if (!is_array($config)) {
+            throw new Exception\InvalidArgumentException(
+                "Argument passed to %s must be an array", __METHOD__);
+        }
+
         $model = new Model();
         $model->setDataManager($this->dataManager)
             ->setFromArray($config);
@@ -59,16 +73,24 @@ class ModelManager implements ModelManagerInterface
     /**
      * @param $models
      * @return mixed|ModelManager
+     * @throws Exception\InvalidArgumentException
      */
     public function setModels($models)
     {
-        $this->models = $models;
+        if (is_array($models) || $models instanceof Traversable) {
+            $this->models = $models;
+        } else {
+            throw new Exception\InvalidArgumentException(sprintf(
+                'Parameter to %s\'s %s method must be an array or implement the \\Traversable interface',
+                __CLASS__, __METHOD__
+            ));
+        }
         return $this;
     }
 
     /**
      * @param DataManager $dataManager
-     * @return ModelManager|ModelManagerInterface
+     * @return mixed
      */
     public function setDataManager(DataManager $dataManager)
     {

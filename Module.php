@@ -39,13 +39,15 @@ class Module
         return array(
             'factories' => array(
                 'DataManager' => 'ZfcDataManager\Service\DefaultDataManagerFactory',
-                'StoreManager' => 'ZfcDataManager\Store\Service\StoreManagerFactory',
-                'ModelManager' => 'ZfcDataManager\Model\Service\ModelManagerFactory',
-                'FieldManager' => 'ZfcDataManager\Field\Service\FieldManagerFactory',
-                'ProxyManager' => 'ZfcDataManager\Proxy\Service\ProxyManagerFactory'
+            ),
+            'invokables' => array(
+                'ModelManager' => 'ZfcDataManager\Model\ModelManager',
+                'ProxyManager' => 'ZfcDataManager\Proxy\ProxyManager',
+                'StoreManager' => 'ZfcDataManager\Store\StoreManager',
+                'FieldManager' => 'ZfcDataManager\Field\FieldManager'
             ),
             'shared' => array(
-                'FieldManager' => false // Every model should get its own FieldManager
+                'FieldManager' => false
             )
         );
     }

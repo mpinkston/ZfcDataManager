@@ -2,9 +2,9 @@
 
 namespace ZfcDataManager\Field;
 
-use ZfcDataManager\DataManager;
+use ZfcDataManager\DataManagerAwareInterface;
 
-interface FieldManagerInterface
+interface FieldManagerInterface extends DataManagerAwareInterface
 {
     /**
      * @abstract
@@ -19,11 +19,4 @@ interface FieldManagerInterface
      * @return mixed
      */
     public function setFields($fields);
-
-    /**
-     * @abstract
-     * @param DataManager $dataManager
-     * @return FieldManagerInterface
-     */
-    public function setDataManager(DataManager $dataManager);
 }

@@ -2,30 +2,19 @@
 
 namespace ZfcDataManager;
 
-use ZfcDataManager\Exception;
-use ZfcDataManager\Model\ModelManager;
 use ZfcDataManager\Model\ModelManagerInterface;
-use ZfcDataManager\Store\AbstractStore;
-use ZfcDataManager\Store\StoreManager;
-use ZfcDataManager\Store\StoreManagerInterface;
-use ZfcDataManager\Proxy\ProxyManager;
 use ZfcDataManager\Proxy\ProxyManagerInterface;
-use Zend\Stdlib\Options;
-use Zend\ServiceManager\ServiceLocatorInterface;
-use Zend\ServiceManager\ServiceLocatorAwareInterface;
-use Zend\ServiceManager\Exception\InvalidServiceNameException;
+use ZfcDataManager\Store\StoreManagerInterface;
+use Zend\ServiceManager\ServiceManager;
+use Zend\ServiceManager\ServiceManagerAwareInterface;
+use Zend\Stdlib\AbstractOptions;
 
-class DataManager extends Options implements ServiceLocatorAwareInterface
+class DataManager implements ServiceManagerAwareInterface
 {
     /**
-     * @var ServiceLocatorInterface
+     * @var array
      */
-    protected $serviceLocator;
-
-    /**
-     * @var string|StoreManagerInterface
-     */
-    protected $storeManager = 'StoreManager';
+    protected $configuration = null;
 
     /**
      * @var string|ModelManagerInterface
@@ -37,42 +26,24 @@ class DataManager extends Options implements ServiceLocatorAwareInterface
      */
     protected $proxyManager = 'ProxyManager';
 
+    /**
+     * @var string|StoreManagerInterface
+     */
+    protected $storeManager = 'StoreManager';
 
     /**
-     * @param array $models
-     * @throws Exception\InvalidArgumentException
-     * @return DataManager
+     * @param $configuration
+     * @param ServiceManager $serviceManager
      */
-    public function setModels($models)
+    public function __construct($configuration, ServiceManager $serviceManager)
     {
-        $this->getModelManager()->setModels($models);
-        return $this;
-    }
-
-    /**
-     * @param array $data
-     * @param $modelName
-     * @return mixed|void
-     */
-    public function createModel(array $data, $modelName)
-    {
-        return $this->getModelManager()->createModel($data, $modelName);
-    }
-
-    /**
-     * @param array $stores
-     * @throws Exception\InvalidArgumentException
-     * @return DataManager
-     */
-    public function setStores($stores)
-    {
-        $this->getStoreManager()->setStores($stores);
-        return $this;
+        $this->configuration  = $configuration;
+        $this->serviceManager = $serviceManager;
     }
 
     /**
      * @param $storeName
-     * @return AbstractStore
+     * @return Store\StoreInterface
      */
     public function getStore($storeName)
     {
@@ -80,162 +51,75 @@ class DataManager extends Options implements ServiceLocatorAwareInterface
     }
 
     /**
-     * @param $config
-     * @return AbstractStore
+     * @param $modelName
+     * @param array|null $data
+     * @return Model\ModelInterface
      */
-    public function createStore($config)
+    public function createModel($modelName, array $data = null)
     {
-        return $this->getStoreManager()->createStore($config);
+        return $this->getModelManager()->createModel($modelName, $data);
     }
 
     /**
-     * @param $proxies
-     * @return DataManager
-     */
-    public function setProxies($proxies)
-    {
-        $this->getProxyManager()->setProxies($proxies);
-        return $this;
-    }
-
-    /**
-     * @param $modelManager
-     * @return DataManager
-     * @throws Exception\InvalidArgumentException
-     */
-    public function setModelManager(ModelManagerInterface $modelManager)
-    {
-        if (is_string($modelManager) || $modelManager instanceof ModelManagerInterface) {
-            $this->modelManager = $modelManager;
-        } else {
-            throw new Exception\InvalidArgumentException(sprintf(
-                'Parameter to %s\'s %s method must be an array or implement the StoreManagerInterface',
-                __CLASS__, __METHOD__
-            ));
-        }
-        return $this;
-    }
-
-    /**
-     * @throws Exception\InvalidArgumentException
-     * @return ModelManager
+     * @return string|Model\ModelManagerInterface
      */
     public function getModelManager()
     {
         if (!$this->modelManager instanceof ModelManagerInterface) {
-            if (is_string($this->modelManager)) {
-                $instance = $this->getServiceLocator()->get($this->modelManager);
-                if (!$instance instanceof ModelManagerInterface) {
-                    throw new Exception\InvalidArgumentException(sprintf(
-                        'ServiceLocator failed to return an instance of ModelManagerInterface'
-                    ));
-                }
-            } else {
-                $instance = new ModelManager();
+            if (is_string($this->modelManager)){
+                $this->modelManager = $this->getServiceManager()->get($this->modelManager);
+                $this->modelManager->setDataManager($this);
+                $this->modelManager->setModels($this->configuration['models']);
             }
-            $instance->setDataManager($this);
-            $this->modelManager = $instance;
         }
         return $this->modelManager;
     }
 
     /**
-     * @param StoreManagerInterface $storeManager
-     * @throws Exception\InvalidArgumentException
-     * @return DataManager
+     * @return string|Proxy\ProxyManagerInterface
      */
-    public function setStoreManager(StoreManagerInterface $storeManager)
+    public function getProxyManager()
     {
-        if (is_string($storeManager) || $storeManager instanceof StoreManagerInterface) {
-            $this->storeManager = $storeManager;
-        } else {
-            throw new Exception\InvalidArgumentException(sprintf(
-                'Parameter to %s\'s %s method must be an array or implement the StoreManagerInterface',
-                __CLASS__, __METHOD__
-            ));
+        if (!$this->proxyManager instanceof ProxyManagerInterface) {
+            if (is_string($this->proxyManager)) {
+                $this->proxyManager = $this->getServiceManager()->get($this->proxyManager);
+                $this->proxyManager->setDataManager($this);
+                $this->proxyManager->setProxies($this->configuration['proxies']);
+            }
         }
-        return $this;
+        return $this->proxyManager;
     }
 
     /**
-     * @throws Exception\InvalidArgumentException
      * @return StoreManagerInterface
      */
     public function getStoreManager()
     {
         if (!$this->storeManager instanceof StoreManagerInterface) {
             if (is_string($this->storeManager)) {
-                $instance = $this->getServiceLocator()->get($this->storeManager);
-                if (!$instance instanceof StoreManagerInterface) {
-                    throw new Exception\InvalidArgumentException(sprintf(
-                        'ServiceLocator failed to return an instance of StoreManagerInterface'
-                    ));
-                }
-            } else {
-                $instance = new StoreManager();
+                $this->storeManager = $this->getServiceManager()->get($this->storeManager);
+                $this->storeManager->setDataManager($this);
+                $this->storeManager->setStores($this->configuration['stores']);
             }
-            $instance->setDataManager($this);
-            $this->storeManager = $instance;
         }
         return $this->storeManager;
     }
 
     /**
-     * @param ProxyManagerInterface $proxyManager
-     * @throws Exception\InvalidArgumentException
+     * @param ServiceManager $serviceManager
      * @return DataManager
      */
-    public function setProxyManager(ProxyManagerInterface $proxyManager)
+    public function setServiceManager(ServiceManager $serviceManager)
     {
-        if (is_string($proxyManager) || $proxyManager instanceof ProxyManagerInterface) {
-            $this->proxyManager = $proxyManager;
-        } else {
-            throw new Exception\InvalidArgumentException(sprintf(
-                'Parameter to %s\'s %s method must be an array or implement the ProxyManagerInterface',
-                __CLASS__, __METHOD__
-            ));
-        }
+        $this->serviceManager = $serviceManager;
         return $this;
     }
 
     /**
-     * @return ProxyManagerInterface
-     * @throws Exception\InvalidArgumentException
+     * @return ServiceManager
      */
-    public function getProxyManager()
+    public function getServiceManager()
     {
-        if (!$this->proxyManager instanceof ProxyManagerInterface) {
-            if (is_string($this->proxyManager)) {
-                $instance = $this->getServiceLocator()->get($this->proxyManager);
-                if (!$instance instanceof ProxyManagerInterface) {
-                    throw new Exception\InvalidArgumentException(sprintf(
-                        'ServiceLocator failed to return an instance of ProxyManagerInterface'
-                    ));
-                }
-            } else {
-                $instance = new ProxyManager();
-            }
-            $instance->setDataManager($this);
-            $this->proxyManager = $instance;
-        }
-        return $this->proxyManager;
-    }
-
-    /**
-     * @param ServiceLocatorInterface $serviceLocator
-     * @return DataManager
-     */
-    public function setServiceLocator(ServiceLocatorInterface $serviceLocator)
-    {
-        $this->serviceLocator = $serviceLocator;
-        return $this;
-    }
-
-    /**
-     * @return ServiceLocatorInterface
-     */
-    public function getServiceLocator()
-    {
-        return $this->serviceLocator;
+        return $this->serviceManager;
     }
 }

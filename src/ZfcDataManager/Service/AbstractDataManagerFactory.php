@@ -29,9 +29,9 @@ abstract class AbstractDataManagerFactory implements FactoryInterface
                 $this->getName()
             ));
         }
-        $manager = new DataManager();
-        $manager->setServiceLocator($serviceLocator)
-            ->setFromArray($config['data'][$this->getName()]);
+
+        $configuration = $config['data'][$this->getName()];
+        $manager = new DataManager($configuration, $serviceLocator);
         return $manager;
     }
 }

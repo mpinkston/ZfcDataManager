@@ -51,8 +51,8 @@ class TableGatewayProxy extends AbstractProxy
     {
         if (!($this->adapter instanceof Adapter)) {
             if (is_string($this->adapter)) {
-                $serviceLocator = $this->dataManager->getServiceLocator();
-                $this->adapter = $serviceLocator->get($this->adapter);
+                $serviceManager = $this->dataManager->getServiceManager();
+                $this->adapter = $serviceManager->get($this->adapter);
             }
             // @TODO: throw an exception or something?
         }
@@ -137,7 +137,25 @@ class TableGatewayProxy extends AbstractProxy
      */
     public function read($id)
     {
-        // TODO: Implement read() method.
+        $gateway = $this->getTableGateway();
+        $gateway->initialize();
+
+        /** @var $sql \Zend\Db\Sql\Sql */
+        $sql = $gateway->getSql();
+        $select = $sql->select();
+
+        // look at the model
+        $model = $this->dataManager->createModel($this->model);
+        $idField = $model->getIdField();
+        $select->where(array($idField->getMapping() => $id));
+        $select->limit(1);
+
+        /** @var $result \Zend\Db\ResultSet\ResultSetInterface */
+        $result = $gateway->selectWith($select);
+        if ($result instanceof Traversable) {
+            $result = ArrayUtils::iteratorToArray($result);
+        }
+        return array_shift($result);
     }
 
     /**

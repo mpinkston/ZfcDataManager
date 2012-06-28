@@ -3,6 +3,8 @@
 namespace ZfcDataManager\Model;
 
 use ZfcDataManager\DataManager;
+use ZfcDataManager\Store\StoreInterface;
+use ZfcDataManager\Field\FieldInterface;
 use Zend\Stdlib\Hydrator\HydratorInterface;
 use Zend\EventManager\EventManagerInterface;
 use Zend\EventManager\EventManagerAwareInterface;
@@ -41,6 +43,19 @@ interface ModelInterface extends EventManagerAwareInterface
      * @return mixed
      */
     public function getEntity();
+
+    /**
+     * @abstract
+     * @return FieldInterface
+     */
+    public function getIdField();
+
+    /**
+     * @abstract
+     * @param StoreInterface $storeInterface
+     * @return ModelInterface
+     */
+    public function setParentStore(StoreInterface $storeInterface);
 
     /**
      * @abstract
