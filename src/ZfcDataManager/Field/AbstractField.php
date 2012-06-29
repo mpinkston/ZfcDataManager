@@ -65,6 +65,14 @@ abstract class AbstractField extends AbstractOptions implements FieldInterface
     }
 
     /**
+     * @return boolean
+     */
+    public function hasValue()
+    {
+        return $this->value !== null;
+    }
+
+    /**
      * @param $name
      * @return AbstractField
      */

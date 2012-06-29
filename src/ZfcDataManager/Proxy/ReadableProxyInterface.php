@@ -2,12 +2,15 @@
 
 namespace ZfcDataManager\Proxy;
 
+use \Traversable;
+use ZfcDataManager\Model\ModelInterface;
+
 interface ReadableProxyInterface extends ProxyInterface
 {
     /**
      * @abstract
      * @param $id
-     * @return mixed
+     * @return array|Traversable|ModelInterface
      */
     public function read($id);
 

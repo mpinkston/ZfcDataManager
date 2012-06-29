@@ -71,14 +71,8 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
     protected function autoHydrate()
     {
         if (!$this->hydrated && $this->auto_hydrate === true) {
-            /** @var $idField FieldInterface */
-            $idField = $this->getField($this->idProperty);
-            if ($idField && $id = $idField->getValue()) {
-                $this->load($id);
-            } else {
-                // @TODO: this is a temporary hack to initialize the fields if no data can be loaded
-                $dataMap = $this->fieldManager->getDataMap();
-                $this->hydrate($dataMap);
+            if ($this->hasIdField() && $this->getIdField()->hasValue()) {
+                $this->load($this->getIdField()->getValue());
             }
         }
     }
@@ -106,7 +100,7 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
 
     /**
      * @param string $name
-     * @return mixed|void
+     * @return mixed|null
      */
     public function __get($name)
     {
@@ -114,9 +108,8 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
         $entity = $this->getEntity();
         if (property_exists($entity, $name)) {
             return $entity->{$name};
-        } else {
-            return parent::__get($name);
         }
+        return null;
     }
 
     /**
@@ -141,14 +134,14 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
     {
         $proxy = $this->parentStore->getProxyForRead();
         $record = $proxy->read($id);
+        if ($record instanceof ModelInterface) {
+            $record = $record->extract();
+        }
         $this->hydrate($record);
         return $this;
     }
 
     /**
-     * hydrate: Maps data. $data should be in the exact same
-     * format as returned by the proxy at this point.
-     *
      * @param array $data
      * @return mixed|Model|ModelInterface
      */
@@ -171,6 +164,15 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
     }
 
     /**
+     * @return mixed
+     */
+    public function extract()
+    {
+        $hydrator = $this->getHydrator();
+        return $hydrator->extract($this->getEntity());
+    }
+
+    /**
      * @param string|HydratorInterface $hydrator
      * @return AbstractModel|ModelInterface
      */
@@ -187,8 +189,12 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
     {
         if (!$this->hydrator instanceof HydratorInterface) {
             if (is_string($this->hydrator)) {
-                $serviceManager = $this->dataManager->getServiceManager();
-                $this->hydrator = $serviceManager->get($this->hydrator);
+                if (class_exists($this->hydrator)) {
+                    $this->hydrator = new $this->hydrator();
+                } else {
+                    $serviceManager = $this->dataManager->getServiceManager();
+                    $this->hydrator = $serviceManager->get($this->hydrator);
+                }
             }
         }
         return $this->hydrator;
@@ -213,7 +219,7 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
     }
 
     /**
-     * @return mixed|void
+     * @return mixed
      */
     public function getEntity()
     {
@@ -241,12 +247,6 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
             if (is_string($this->fieldManager)) {
                 $serviceManager = $this->dataManager->getServiceManager();
                 $instance = $serviceManager->get($this->fieldManager);
-                if (!$instance instanceof FieldManagerInterface) {
-                    throw new Exception\InvalidArgumentException(sprintf(
-                        'ServiceLocator failed to return an instance of FieldManagerInterface in %s',
-                        __METHOD__
-                    ));
-                }
             } else {
                 $instance = new FieldManager();
             }
@@ -254,6 +254,14 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
             $this->fieldManager = $instance;
         }
         return $this->fieldManager;
+    }
+
+    /**
+     * @return bool
+     */
+    public function hasIdField()
+    {
+        return $this->getFieldManager()->hasField($this->idProperty);
     }
 
     /**

@@ -33,6 +33,12 @@ interface ModelInterface extends EventManagerAwareInterface
 
     /**
      * @abstract
+     * @return array
+     */
+    public function extract();
+
+    /**
+     * @abstract
      * @param $entity
      * @return mixed
      */
@@ -43,6 +49,12 @@ interface ModelInterface extends EventManagerAwareInterface
      * @return mixed
      */
     public function getEntity();
+
+    /**
+     * @abstract
+     * @return boolean
+     */
+    public function hasIdField();
 
     /**
      * @abstract

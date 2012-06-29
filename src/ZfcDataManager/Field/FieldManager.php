@@ -25,6 +25,15 @@ class FieldManager implements FieldManagerInterface
 
     /**
      * @param $fieldName
+     * @return bool
+     */
+    public function hasField($fieldName)
+    {
+        return isset($this->fields[$fieldName]);
+    }
+
+    /**
+     * @param $fieldName
      * @return mixed
      */
     public function getField($fieldName)
@@ -170,7 +179,7 @@ class FieldManager implements FieldManagerInterface
 
     /**
      * @param DataManager $dataManager
-     * @return FieldManagerInterface
+     * @return mixed|FieldManagerInterface
      */
     public function setDataManager(DataManager $dataManager)
     {

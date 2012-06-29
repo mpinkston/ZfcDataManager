@@ -19,7 +19,7 @@ class ModelField extends StoreField
 
         $pKey = $this->getPrimaryKey();
 
-        if (isset($record[$pKey])) {
+        if (isset($record[$pKey]) && $model->hasIdField()) {
             $idField = $model->getIdField();
             $idField->setValue($record[$pKey]);
         }

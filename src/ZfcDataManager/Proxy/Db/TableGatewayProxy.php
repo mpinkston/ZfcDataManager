@@ -150,12 +150,12 @@ class TableGatewayProxy extends AbstractProxy
         $select->where(array($idField->getMapping() => $id));
         $select->limit(1);
 
-        /** @var $result \Zend\Db\ResultSet\ResultSetInterface */
+        /** @var $result \Zend\Db\ResultSet\ResultSet */
         $result = $gateway->selectWith($select);
-        if ($result instanceof Traversable) {
-            $result = ArrayUtils::iteratorToArray($result);
+        if ($result->count() && $data = $result->current()->getArrayCopy()) {
+            return $data;
         }
-        return array_shift($result);
+        return array();
     }
 
     /**
