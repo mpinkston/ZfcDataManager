@@ -10,7 +10,7 @@ interface ReadableProxyInterface extends ProxyInterface
     /**
      * @abstract
      * @param $id
-     * @return array|Traversable|ModelInterface
+     * @return ModelInterface
      */
     public function read($id);
 

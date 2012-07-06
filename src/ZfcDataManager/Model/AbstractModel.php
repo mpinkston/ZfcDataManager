@@ -350,11 +350,8 @@ abstract class AbstractModel extends AbstractOptions implements ModelInterface
      *
      * @return EventManagerInterface
      */
-    public function events()
+    public function getEventManager()
     {
-        if (!$this->events()) {
-            $this->setEventManager(new EventManager());
-        }
         return $this->events;
     }
 

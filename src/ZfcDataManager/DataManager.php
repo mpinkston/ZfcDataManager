@@ -4,6 +4,7 @@ namespace ZfcDataManager;
 
 use ZfcDataManager\Model\ModelManagerInterface;
 use ZfcDataManager\Proxy\ProxyManagerInterface;
+use ZfcDataManager\Store\StoreInterface;
 use ZfcDataManager\Store\StoreManagerInterface;
 use Zend\ServiceManager\ServiceManager;
 use Zend\ServiceManager\ServiceManagerAwareInterface;
@@ -42,12 +43,54 @@ class DataManager implements ServiceManagerAwareInterface
     }
 
     /**
+     * @param $name
+     * @param $arguments
+     */
+    public function __call($name, $arguments)
+    {
+        if (preg_match("/^get(?<name>[a-z0-9]+)/i", $name, $match)) {
+
+            // @TODO: name canonicalization
+            $myName = strtolower($match['name']);
+
+            if ($this->getStoreManager()->hasStore($myName)) {
+                return $this->getStore($myName);
+            } else if ($this->getModelManager()->hasModel($myName)) {
+                if (count($arguments) == 1) {
+                    if (is_array($arguments[0])) {
+                        return $this->createModel($myName, $arguments[0]);
+                    } else if (is_scalar($arguments[0])) {
+                        return $this->getModel($myName, $arguments[0]);
+                    }
+                } else {
+                    return $this->createModel($myName);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * @param $storeName
      * @return Store\StoreInterface
      */
     public function getStore($storeName)
     {
         return $this->getStoreManager()->getStore($storeName);
+    }
+
+    /**
+     * @param $modelName
+     * @param $id
+     * @return mixed
+     */
+    public function getModel($modelName, $id)
+    {
+        $store = $this->getStoreManager()->getStoreByModelName($modelName);
+        if ($store instanceof StoreInterface) {
+            return $store->getById($id);
+        }
+        return null;
     }
 
     /**

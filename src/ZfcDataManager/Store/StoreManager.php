@@ -27,11 +27,34 @@ class StoreManager implements StoreManagerInterface
 
     /**
      * @param $storeName
+     * @return bool
+     */
+    public function hasStore($storeName)
+    {
+        return isset($this->stores[$storeName]);
+    }
+
+    /**
+     * @param $storeName
      * @return mixed|Store
      */
     public function getStore($storeName)
     {
         return $this->loadStore($storeName);
+    }
+
+    /**
+     * @param $modelName
+     * @return mixed|null|Store|StoreInterface
+     */
+    public function getStoreByModelName($modelName)
+    {
+        foreach ($this->stores as $store => $config) {
+            if (isset($config['model']) && $config['model'] == $modelName) {
+                return $this->getStore($store);
+            }
+        }
+        return null;
     }
 
     /**

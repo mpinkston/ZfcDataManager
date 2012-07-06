@@ -60,17 +60,22 @@ abstract class AbstractStore extends AbstractOptions
     /**
      * @var int
      */
+    protected $totalCount = 0;
+
+    /**
+     * @var int
+     */
+    protected $currentPage = 1;
+
+    /**
+     * @var int
+     */
     protected $startIndex = 0;
 
     /**
      * @var int
      */
     protected $pageSize = 50;
-
-    /**
-     * @var int
-     */
-    protected $totalCount;
 
     /**
      * @var string
@@ -83,26 +88,23 @@ abstract class AbstractStore extends AbstractOptions
     protected $dataManager;
 
     /**
-     * @param $record
-     * @return ModelInterface
+     * @param ModelInterface $model
+     * @return StoreInterface
      */
-    public function add($record)
+    public function add(ModelInterface $model)
     {
-        if (!$record instanceof ModelInterface) {
-            $record = $this->createModel($record);
-        }
-        if (!$this->data) {
+        if (!$this->data instanceof ArrayObject) {
             $this->data = new ArrayObject();
         }
-        $this->data->append($record);
+        $this->data->append($model);
     }
 
     /**
-     * @param null|array $options
-     * @throws \ZfcDataManager\Proxy\Exception\RuntimeException
-     * @return \ArrayObject
+     * @param array $options
+     * @return mixed|AbstractStore
+     * @throws Exception\RuntimeException
      */
-    public function load($options = null)
+    public function load(array $options = null)
     {
         if (null !== $options) {
             $this->setFromArray($options);
@@ -113,14 +115,7 @@ abstract class AbstractStore extends AbstractOptions
             $this->getStartIndex(),
             $this->getPageSize()
         );
-
-        if (is_array($data) || $data instanceof Traversable) {
-            foreach ($data as $record) {
-                $this->add($record);
-            }
-        } else {
-            throw new RuntimeException("Proxy failed to return an iterable result");
-        }
+        $this->loadData($data);
 
         return $this;
     }
@@ -130,11 +125,15 @@ abstract class AbstractStore extends AbstractOptions
      * @throws Exception\InvalidArgumentException
      * @return StoreInterface|AbstractStore
      */
-    public function loadData($data)
+    public function loadData(array $data)
     {
         if (is_array($data) || $data instanceof Traversable) {
             foreach ($data as $record) {
-                $this->add($record);
+                if ($record instanceof ModelInterface) {
+                    $this->add($record);
+                } else if (ArrayUtils::hasStringKeys($record)) {
+                    $this->add($this->createModel($record));
+                }
             }
             return $this;
         }
@@ -198,12 +197,17 @@ abstract class AbstractStore extends AbstractOptions
 
     /**
      * @param $id
-     * @return void|ModelInterface
+     * @return null|ModelInterface
      */
     public function getById($id)
     {
         $record = $this->getProxyForRead()->read($id);
-        return $this->createModel($record);
+        if ($record instanceof ModelInterface) {
+            return $record;
+        } else if (ArrayUtils::hasStringKeys($record)) {
+            return $this->createModel($record);
+        }
+        return null;
     }
 
     /**
@@ -221,10 +225,7 @@ abstract class AbstractStore extends AbstractOptions
      */
     public function createModel(array $record = null)
     {
-        if ($record instanceof Traversable) {
-            $record = ArrayUtils::iteratorToArray($record);
-        }
-        if (is_array($record)) {
+        if (ArrayUtils::hasStringKeys($record)) {
             $model = $this->dataManager->createModel($this->getModel(), $record);
         } else {
             $model = $this->dataManager->createModel($this->getModel());
@@ -238,9 +239,10 @@ abstract class AbstractStore extends AbstractOptions
      */
     public function getTotalCount()
     {
-        if ($this->totalCount === null) {
+        if (!$this->totalCount) {
             $proxy = $this->getProxyForRead();
-            $this->totalCount = $proxy->getTotalCount();
+            $total = $proxy->getTotalCount();
+            $this->totalCount = (int) $total;
         }
         return $this->totalCount;
     }
@@ -275,6 +277,53 @@ abstract class AbstractStore extends AbstractOptions
     public function getPageSize()
     {
         return $this->pageSize;
+    }
+
+    /**
+     *
+     */
+    public function getPageRange()
+    {
+        $total = $this->getTotalCount();
+        $pageSize = $this->getPageSize();
+        if (is_int($pageSize) && $pageSize > 0) {
+            return ceil($total/$pageSize);
+        }
+        return 0;
+    }
+
+    /**
+     * @param $page
+     * @return AbstractStore
+     */
+    public function setCurrentPage($page)
+    {
+        $this->currentPage = (int) $page;
+        return $this;
+    }
+
+    public function getCurrentPage()
+    {
+        return $this->currentPage;
+    }
+
+    /**
+     * @param $pageNumber
+     * @return AbstractStore
+     */
+    public function getPage($pageNumber)
+    {
+        $pageNumber = (int) $pageNumber;
+        $pageRange = $this->getPageRange();
+        $pageSize = $this->getPageSize();
+
+        if ($pageNumber <= $pageRange) {
+            $startIndex = floor($pageNumber * $pageSize);
+            $this->setCurrentPage($pageNumber);
+            $this->setStartIndex($startIndex);
+            $this->load();
+        }
+        return $this;
     }
 
     /**
@@ -366,11 +415,8 @@ abstract class AbstractStore extends AbstractOptions
      *
      * @return EventManagerInterface
      */
-    public function events()
+    public function getEventManager()
     {
-        if (!$this->events()) {
-            $this->setEventManager(new EventManager());
-        }
         return $this->events;
     }
 

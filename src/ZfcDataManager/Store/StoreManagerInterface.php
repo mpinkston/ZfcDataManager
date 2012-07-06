@@ -23,7 +23,21 @@ interface StoreManagerInterface extends DataManagerAwareInterface
     /**
      * @abstract
      * @param $storeName
+     * @return bool
+     */
+    public function hasStore($storeName);
+
+    /**
+     * @abstract
+     * @param $storeName
      * @return StoreInterface
      */
     public function getStore($storeName);
+
+    /**
+     * @abstract
+     * @param $modelName
+     * @return mixed
+     */
+    public function getStoreByModelName($modelName);
 }

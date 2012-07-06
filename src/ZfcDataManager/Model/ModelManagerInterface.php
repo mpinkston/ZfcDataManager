@@ -16,6 +16,13 @@ interface ModelManagerInterface extends DataManagerAwareInterface
     /**
      * @abstract
      * @param $modelName
+     * @return bool
+     */
+    public function hasModel($modelName);
+
+    /**
+     * @abstract
+     * @param $modelName
      * @param array|null $data
      * @return ModelInterface
      */

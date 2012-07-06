@@ -8,6 +8,7 @@ use ZfcDataManager\Proxy\SortableProxyInterface;
 use ZfcDataManager\Proxy\WritableProxyInterface;
 use ZfcDataManager\Proxy\AbstractProxy;
 use Zend\Db\Adapter\Adapter;
+use Zend\Db\Sql\Expression;
 use Zend\Db\TableGateway\TableGateway;
 use Zend\Stdlib\ArrayUtils;
 
@@ -138,7 +139,6 @@ class TableGatewayProxy extends AbstractProxy
     public function read($id)
     {
         $gateway = $this->getTableGateway();
-        $gateway->initialize();
 
         /** @var $sql \Zend\Db\Sql\Sql */
         $sql = $gateway->getSql();
@@ -182,6 +182,21 @@ class TableGatewayProxy extends AbstractProxy
      */
     public function getTotalCount()
     {
-        // TODO: Implement getTotalCount() method.
+        $gateway = $this->getTableGateway();
+
+        $sql = $gateway->getSql();
+        $select = $sql->select();
+        $select->columns(array(
+            'count' => new Expression('COUNT(*)')
+        ));
+
+        // @TODO: filters
+
+        $result = $gateway->selectWith($select);
+        /** @var $result \Zend\Db\ResultSet\ResultSet */
+        if ($result->count() && $data = $result->current()->getArrayCopy()) {
+            return $data['count'];
+        }
+        return 0;
     }
 }

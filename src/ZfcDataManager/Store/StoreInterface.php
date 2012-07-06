@@ -9,10 +9,34 @@ use ZfcDataManager\Model\ModelInterface;
 interface StoreInterface extends EventManagerAwareInterface
 {
     public function getData();
-    public function load($options = null);
-    public function loadData($data);
 
+    public function loadData(array $data);
+
+    /**
+     * @abstract
+     * @param array $options
+     * @return mixed
+     */
+    public function load(array $options = null);
+
+    /**
+     * @abstract
+     * @param ModelInterface $model
+     * @return StoreInterface
+     */
+    public function add(ModelInterface $model);
+
+    /**
+     * @abstract
+     * @param string $model
+     * @return StoreInterface
+     */
     public function setModel($model);
+
+    /**
+     * @abstract
+     * @return string
+     */
     public function getModel();
 
     /**

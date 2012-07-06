@@ -20,6 +20,15 @@ class ModelManager implements ModelManagerInterface
 
     /**
      * @param $modelName
+     * @return bool
+     */
+    public function hasModel($modelName)
+    {
+        return isset($this->models[$modelName]);
+    }
+
+    /**
+     * @param $modelName
      * @return mixed|Model
      */
     public function getModel($modelName)
