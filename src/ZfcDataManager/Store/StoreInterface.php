@@ -45,4 +45,17 @@ interface StoreInterface extends EventManagerAwareInterface
      * @return ModelInterface
      */
     public function createModel(array $record = null);
+
+    /**
+     * @abstract
+     * @return int
+     */
+    public function getPageRange();
+
+    /**
+     * @abstract
+     * @return int
+     */
+    public function getCurrentPage();
+
 }

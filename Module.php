@@ -51,4 +51,33 @@ class Module
             )
         );
     }
+
+    /**
+     * @return array
+     */
+    public function getViewHelperConfiguration()
+    {
+        return array(
+            'invokables' => array(
+                'GravityPager' => 'ZfcDataManager\View\Helper\GravityPager',
+                'SlidingPager' => 'ZfcDataManager\View\Helper\SlidingPager'
+            )
+        );
+    }
+
+    /**
+     * @return array
+     */
+    public function getControllerConfiguration()
+    {
+        return array();
+    }
+
+    /**
+     * @return array
+     */
+    public function getControllerPluginConfiguration()
+    {
+        return array();
+    }
 }
