@@ -72,6 +72,9 @@ abstract class AbstractPager extends AbstractHelper
      */
     protected function render()
     {
+        // @TODO: should I even attempt to render here, or use partials like the built-in paginator?
+        // (or both/neither?)
+
         /** @var $htmlList \Zend\View\Helper\HtmlList */
         $list = $this->getPageList();
 
@@ -80,7 +83,7 @@ abstract class AbstractPager extends AbstractHelper
             if ($page == $this->store->getCurrentPage()) {
                 $html .= "  <li class=\"current page\">{$page}</li>";
             } else {
-                $html .= "  <li class=\"page\"><a href=\"/support/building?page={$page}\">{$page}</a></li>";
+                $html .= "  <li class=\"page\">{$page}</li>";
             }
         }
         $html .= '</ul>';
